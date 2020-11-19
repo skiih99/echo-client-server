@@ -5,6 +5,8 @@ bool echo = false;
 
 vector<int> clientsd;
 
+mutex mut;
+
 void usage(){
     cout << "syntax : echo-server <port> [-e [-b]]\n";
 	cout << "sample : echo-server 1234 -e -b\n";
@@ -22,6 +24,7 @@ void recvThread(int sd) {
         cout << "&& Received message from client: " << recv << endl;
 
         if(broadcast) {
+            mut.lock();
             for(int tmpsd : clientsd) {
                 if(write(tmpsd, recv, strlen(recv)) != strlen(recv)) {
                     perror("send error");
@@ -29,6 +32,7 @@ void recvThread(int sd) {
                 }
             }
             cout << "%% Send message to all clients.\n";
+            mut.unlock();
         }
         else if(echo) {
             if(write(sd, recv, strlen(recv)) != strlen(recv)) {
@@ -40,12 +44,14 @@ void recvThread(int sd) {
     cout << "&& Client disconnected.\n";
     close(sd);
     
+    mut.lock();
     vector<int>::iterator iter = clientsd.begin();
     for (int i = 0; i < clientsd.size(); i++) {
         if(clientsd[i] == sd) {
             clientsd.erase(iter + i);
         }
     }
+    mut.unlock();
         
     
 }
